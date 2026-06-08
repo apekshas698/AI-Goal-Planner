@@ -1,0 +1,15 @@
+# Spring Boot
+Backend/Project/target/
+Backend/Project/.idea/
+Backend/Project/*.iml
+
+# Secrets
+Backend/Project/src/main/resources/application-local.properties
+
+# React
+Frontend side/ai/node_modules/
+Frontend side/ai/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
