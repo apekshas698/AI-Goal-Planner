@@ -18,9 +18,45 @@ public class AIService {
 
     public String generatePlan(String goal) {
 
+        String prompt = """
+                Create a detailed roadmap for %s.
+                Give phases, tasks, projects and milestones.
+                """.formatted(goal);
+
+        return callAI(prompt);
+    }
+
+    public String generateTasks(String goal) {
+
+        String prompt = """
+                Create 10 actionable tasks for the goal: %s
+
+                Return ONLY valid JSON.
+
+                Example:
+
+                {
+                  "tasks": [
+                    {"name":"Learn Java Basics"},
+                    {"name":"Learn OOP"},
+                    {"name":"Learn Collections"}
+                  ]
+                }
+
+                Do not return markdown.
+                Do not return explanation.
+                Do not use ```json.
+                """.formatted(goal);
+
+        return callAI(prompt);
+    }
+
+    private String callAI(String prompt) {
+
         try {
 
-            String url = "https://openrouter.ai/api/v1/chat/completions";
+            String url =
+                    "https://openrouter.ai/api/v1/chat/completions";
 
             String body = """
                     {
@@ -28,22 +64,30 @@ public class AIService {
                       "messages":[
                         {
                           "role":"system",
-                          "content":"You are an expert roadmap planner."
+                          "content":"You are an expert planner."
                         },
                         {
                           "role":"user",
-                          "content":"Create a detailed roadmap for %s. Give phases, tasks, projects and milestones."
+                          "content":"%s"
                         }
                       ]
                     }
-                    """.formatted(goal);
+                    """.formatted(prompt.replace("\"", "\\\""));
 
             HttpHeaders headers = new HttpHeaders();
+
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiKey);
 
-            headers.add("HTTP-Referer", "http://localhost:5173");
-            headers.add("X-Title", "AI Goal Planner");
+            headers.add(
+                    "HTTP-Referer",
+                    "http://localhost:5173"
+            );
+
+            headers.add(
+                    "X-Title",
+                    "AI Goal Planner"
+            );
 
             HttpEntity<String> request =
                     new HttpEntity<>(body, headers);
@@ -58,18 +102,15 @@ public class AIService {
 
             String json = response.getBody();
 
-            JsonNode root = objectMapper.readTree(json);
+            JsonNode root =
+                    objectMapper.readTree(json);
 
-            String content = root
-                    .path("choices")
-                    .get(0)
-                    .path("message")
-                    .path("content")
-                    .asText();
-
-            System.out.println("\n===== AI ROADMAP =====");
-            System.out.println(content);
-            System.out.println("======================\n");
+            String content =
+                    root.path("choices")
+                            .get(0)
+                            .path("message")
+                            .path("content")
+                            .asText();
 
             return content;
 
@@ -77,17 +118,7 @@ public class AIService {
 
             e.printStackTrace();
 
-            return """
-                    TASK 1: Learn basics of %s
-
-                    TASK 2: Practice concepts
-
-                    TASK 3: Build mini project
-
-                    TASK 4: Build major project
-
-                    TASK 5: Interview preparation
-                    """.formatted(goal);
+            return "";
         }
     }
 }
