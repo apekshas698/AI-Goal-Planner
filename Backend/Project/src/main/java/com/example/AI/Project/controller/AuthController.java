@@ -1,10 +1,12 @@
 package com.example.AI.Project.controller;
 
-import com.example.AI.Project.dto.*;
+import com.example.AI.Project.config.JwtUtil;
+import com.example.AI.Project.dto.AuthResponse;
+import com.example.AI.Project.dto.LoginRequest;
+import com.example.AI.Project.dto.SignupRequest;
 import com.example.AI.Project.model.User;
 import com.example.AI.Project.repository.UserRepository;
 import com.example.AI.Project.service.UserService;
-import com.example.AI.Project.config.JwtUtil;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -17,15 +19,18 @@ public class AuthController {
     private final UserRepository repository;
     private final UserService userService;
     private final PasswordEncoder encoder;
+    private final JwtUtil jwtUtil;
 
     public AuthController(
             UserRepository repository,
             UserService userService,
-            PasswordEncoder encoder) {
+            PasswordEncoder encoder,
+            JwtUtil jwtUtil) {
 
         this.repository = repository;
         this.userService = userService;
         this.encoder = encoder;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/signup")
@@ -47,10 +52,10 @@ public class AuthController {
     public AuthResponse login(
             @RequestBody LoginRequest request) {
 
-        User user =
-                repository.findByEmail(
-                        request.getEmail()
-                ).orElseThrow();
+        User user = repository
+                .findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
 
         boolean matches =
                 encoder.matches(
@@ -65,7 +70,7 @@ public class AuthController {
         }
 
         String token =
-                JwtUtil.generateToken(
+                jwtUtil.generateToken(
                         user.getEmail()
                 );
 
