@@ -1,7 +1,10 @@
 package com.example.AI.Project.controller;
 
+import com.example.AI.Project.model.Goal;
 import com.example.AI.Project.model.Task;
+import com.example.AI.Project.repository.GoalRepository;
 import com.example.AI.Project.repository.TaskRepository;
+import com.example.AI.Project.service.AgentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,9 +15,17 @@ import java.util.List;
 public class TaskController {
 
     private final TaskRepository repository;
+    private final GoalRepository goalRepository;
+    private final AgentService agentService;
 
-    public TaskController(TaskRepository repository) {
+    public TaskController(
+            TaskRepository repository,
+            GoalRepository goalRepository,
+            AgentService agentService) {
+
         this.repository = repository;
+        this.goalRepository = goalRepository;
+        this.agentService = agentService;
     }
 
     @GetMapping("/{goalId}")
@@ -35,6 +46,14 @@ public class TaskController {
 
         task.setCompleted(updatedTask.isCompleted());
 
-        return repository.save(task);
+        Task savedTask = repository.save(task);
+
+        Goal goal = goalRepository.findById(task.getGoalId())
+                .orElseThrow();
+
+        agentService.updateGoalProgress(goal);
+        goalRepository.save(goal);
+
+        return savedTask;
     }
 }

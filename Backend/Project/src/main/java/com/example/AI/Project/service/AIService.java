@@ -21,7 +21,7 @@ public class AIService {
         String prompt = """
                 Create a detailed roadmap for %s.
                 Give phases, tasks, projects and milestones.
-                """.formatted(goal);
+                """.formatted(goal.replace("%", "%%"));
 
         return callAI(prompt);
     }
@@ -46,7 +46,7 @@ public class AIService {
                 Do not return markdown.
                 Do not return explanation.
                 Do not use ```json.
-                """.formatted(goal);
+                """.formatted(goal.replace("%", "%%"));
 
         return callAI(prompt);
     }
@@ -72,7 +72,7 @@ public class AIService {
                         }
                       ]
                     }
-                    """.formatted(prompt.replace("\"", "\\\""));
+                    """.formatted(prompt.replace("\"", "\\\"").replace("\n", "\\n"));
 
             HttpHeaders headers = new HttpHeaders();
 

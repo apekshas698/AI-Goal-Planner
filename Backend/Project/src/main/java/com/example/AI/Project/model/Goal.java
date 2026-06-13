@@ -19,6 +19,10 @@ public class Goal {
 
     private Integer progress;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     public Goal() {
     }
 
@@ -42,6 +46,10 @@ public class Goal {
         return progress;
     }
 
+    public User getUser() {
+        return user;
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -56,5 +64,9 @@ public class Goal {
 
     public void setProgress(Integer progress) {
         this.progress = progress;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }
