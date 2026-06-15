@@ -91,6 +91,9 @@ public class Task {
         if (completed) {
             this.status = "COMPLETED";
             this.completedAt = LocalDateTime.now();
+        } else {
+            this.status = "PENDING";
+            this.completedAt = null;
         }
     }
 

@@ -1,59 +1,54 @@
 package com.example.AI.Project.controller;
 
-import com.example.AI.Project.model.Goal;
+import com.example.AI.Project.event.TaskCompletedEvent;
 import com.example.AI.Project.model.Task;
-import com.example.AI.Project.repository.GoalRepository;
 import com.example.AI.Project.repository.TaskRepository;
-import com.example.AI.Project.service.AgentService;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin("*")
 public class TaskController {
 
-    private final TaskRepository repository;
-    private final GoalRepository goalRepository;
-    private final AgentService agentService;
+    private final TaskRepository taskRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public TaskController(
-            TaskRepository repository,
-            GoalRepository goalRepository,
-            AgentService agentService) {
-
-        this.repository = repository;
-        this.goalRepository = goalRepository;
-        this.agentService = agentService;
+    public TaskController(TaskRepository taskRepository, ApplicationEventPublisher eventPublisher) {
+        this.taskRepository = taskRepository;
+        this.eventPublisher = eventPublisher;
     }
 
-    @GetMapping("/{goalId}")
-    public List<Task> getTasks(
-            @PathVariable Long goalId) {
-
-        return repository.findByGoalId(goalId);
+    @GetMapping("/goal/{goalId}")
+    public List<Task> getTasksByGoal(@PathVariable Long goalId) {
+        return taskRepository.findByGoalId(goalId);
     }
 
-    @PutMapping("/{taskId}")
-    public Task updateTask(
-            @PathVariable Long taskId,
-            @RequestBody Task updatedTask) {
+    @PutMapping("/{id}/complete")
+    public Task completeTask(@PathVariable Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        Task task =
-                repository.findById(taskId)
-                        .orElseThrow();
+        task.setCompleted(true);
+        Task saved = taskRepository.save(task);
 
-        task.setCompleted(updatedTask.isCompleted());
+        eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
 
-        Task savedTask = repository.save(task);
+        return saved;
+    }
 
-        Goal goal = goalRepository.findById(task.getGoalId())
-                .orElseThrow();
+    @PutMapping("/{id}/incomplete")
+    public Task incompleteTask(@PathVariable Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        agentService.updateGoalProgress(goal);
-        goalRepository.save(goal);
+        task.setCompleted(false);
+        Task saved = taskRepository.save(task);
 
-        return savedTask;
+        eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
+
+        return saved;
     }
 }

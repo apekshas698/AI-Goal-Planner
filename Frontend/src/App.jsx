@@ -1,30 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import API from "./services/api";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import ProtectedRoute from "./components/ProtectedRoute";
+import GoalList from "./components/GoalList";
 import { useAuth } from "./context/AuthContext";
 
 function Dashboard() {
   const [title, setTitle] = useState("");
-  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { logout } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchGoals();
-  }, []);
-
-  const fetchGoals = async () => {
-    try {
-      const response = await API.get("/goals");
-      setGoals(response.data);
-    } catch (error) {
-      console.error("Error fetching goals:", error);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -37,23 +25,13 @@ function Dashboard() {
     try {
       await API.post("/goals", { title });
       setTitle("");
-      await fetchGoals();
+      setRefreshKey((prev) => prev + 1); // remounts GoalList to refetch goals/tasks
       alert("Goal Created Successfully");
     } catch (error) {
       console.error(error);
       alert("Failed to create goal");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const deleteGoal = async (id) => {
-    try {
-      await API.delete(`/goals/${id}`);
-      fetchGoals();
-    } catch (error) {
-      console.error("Delete Error:", error);
-      alert("Failed to delete goal");
     }
   };
 
@@ -98,42 +76,7 @@ function Dashboard() {
 
       <hr />
 
-      <h2>My Goals</h2>
-
-      {goals.length === 0 ? (
-        <p>No goals found.</p>
-      ) : (
-        goals.map((goal) => (
-          <div
-            key={goal.id}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: "8px",
-              padding: "15px",
-              marginBottom: "15px",
-              backgroundColor: "#f9f9f9",
-            }}
-          >
-            <h3>{goal.title}</h3>
-            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
-              {goal.plan}
-            </pre>
-            <button
-              onClick={() => deleteGoal(goal.id)}
-              style={{
-                backgroundColor: "#dc3545",
-                color: "white",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Delete Goal
-            </button>
-          </div>
-        ))
-      )}
+      <GoalList key={refreshKey} />
     </div>
   );
 }
