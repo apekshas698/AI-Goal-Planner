@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GoalList from "./components/GoalList";
+import DailyPlanner from "./components/DailyPlanner";
 import { useAuth } from "./context/AuthContext";
 
 function Dashboard() {
@@ -25,7 +26,7 @@ function Dashboard() {
     try {
       await API.post("/goals", { title });
       setTitle("");
-      setRefreshKey((prev) => prev + 1); // remounts GoalList to refetch goals/tasks
+      setRefreshKey((prev) => prev + 1);
       alert("Goal Created Successfully");
     } catch (error) {
       console.error(error);
@@ -42,6 +43,8 @@ function Dashboard() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "40px auto", padding: "20px", fontFamily: "Arial" }}>
+      
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>🤖 AI Task Planner</h1>
         <button
@@ -60,6 +63,7 @@ function Dashboard() {
         </button>
       </div>
 
+      {/* Create Goal */}
       <div style={{ marginBottom: "20px" }}>
         <input
           type="text"
@@ -68,15 +72,25 @@ function Dashboard() {
           onChange={(e) => setTitle(e.target.value)}
           style={{ padding: "10px", width: "70%", marginRight: "10px" }}
         />
-
-        <button onClick={handleSubmit} disabled={loading} style={{ padding: "10px 20px", cursor: "pointer" }}>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          style={{ padding: "10px 20px", cursor: "pointer" }}
+        >
           {loading ? "Creating..." : "Create Goal"}
         </button>
       </div>
 
       <hr />
 
+      {/* Goal List */}
       <GoalList key={refreshKey} />
+
+      <hr style={{ margin: "30px 0" }} />
+
+      {/* AI Daily Planner */}
+      <DailyPlanner />
+
     </div>
   );
 }
