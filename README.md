@@ -1,6 +1,6 @@
 # AI Goal Planner
 
-AI Goal Planner is a full-stack web application that helps users create goals, generate AI-powered action plans, automatically track progress through task completion, and manage tasks efficiently.
+AI Goal Planner is a full-stack web application that helps users create goals, generate AI-powered action plans, automatically track progress through task completion, get a personalized daily schedule, and chat with an AI mentor for guidance.
 
 ## Features
 
@@ -9,6 +9,8 @@ AI Goal Planner is a full-stack web application that helps users create goals, g
 * AI-generated goal plans and task breakdowns using OpenRouter API
 * Event-driven automatic progress tracking — goal progress and status update automatically as tasks are completed
 * Task management with completion checklist, status, and priority
+* AI Daily Planner — generates a focused hour-by-hour schedule based on pending tasks and available hours
+* AI Mentor Chat — conversational assistant for programming, system design, and career guidance
 * RESTful APIs with Spring Boot
 * MySQL database integration
 * Modern React frontend with progress bars and status badges
@@ -32,9 +34,11 @@ AI Goal Planner is a full-stack web application that helps users create goals, g
 * CSS
 
 ### AI Integration
-* OpenRouter API
+* OpenRouter API (model: `openai/gpt-oss-20b:free`)
 
-## Key Architecture Highlight: Event-Driven Progress Tracking
+## Key Architecture Highlights
+
+### Event-Driven Progress Tracking
 
 When a user marks a task as complete or incomplete via the UI, the backend:
 
@@ -42,6 +46,14 @@ When a user marks a task as complete or incomplete via the UI, the backend:
 2. `GoalProgressListener` (annotated with `@EventListener`) picks up the event, recalculates the goal's progress percentage based on completed vs. total tasks, and updates the goal's `progress` and `status` (`NOT_STARTED` / `IN_PROGRESS` / `COMPLETED`).
 
 This decouples task updates from goal progress logic — no manual progress updates required, and new side effects (notifications, activity logs, etc.) can be added later without touching `TaskController`.
+
+### AI Mentor Chat (Multi-Turn Conversation)
+
+The chat feature sends the full conversation history with every request, giving the AI memory of the ongoing session. The backend exposes `POST /api/chat`, which accepts a list of messages and returns the assistant's reply. The system prompt instructs the AI to act as a software engineering mentor covering programming, system design, and career growth.
+
+### AI Daily Planner
+
+Given a saved goal, the planner fetches all its tasks, separates completed from pending ones, and passes them along with the user's available hours to the AI. It returns a focused hour-by-hour schedule starting from 9:00 AM using only pending tasks.
 
 ## Project Structure
 
@@ -53,10 +65,12 @@ AI-Goal-Planner/
 │       ├── src/
 │       │   └── main/
 │       │       ├── java/com/example/AI/Project/
-│       │       │   ├── controller/   (GoalController, TaskController, Auth)
+│       │       │   ├── config/       (SecurityConfig, JwtUtil, JwtAuthenticationFilter)
+│       │       │   ├── controller/   (GoalController, TaskController, AuthController, PlannerController, ChatController)
+│       │       │   ├── dto/          (AuthResponse, LoginRequest, SignupRequest, TaskDTO, TaskResponseDTO, PlannerRequest, ChatMessage, ChatRequest)
 │       │       │   ├── model/        (Goal, Task, User)
 │       │       │   ├── repository/   (GoalRepository, TaskRepository, UserRepository)
-│       │       │   ├── service/      (AIService)
+│       │       │   ├── service/      (AIService, UserService, AgentService)
 │       │       │   ├── event/        (TaskCompletedEvent)
 │       │       │   └── listener/     (GoalProgressListener)
 │       │       └── resources/
@@ -66,9 +80,9 @@ AI-Goal-Planner/
 ├── Frontend side/
 │   └── ai/
 │       ├── src/
-│       │   ├── components/  (Login, Signup, GoalList, ProtectedRoute)
-│       │   ├── context/      (AuthContext)
-│       │   ├── services/     (api.js)
+│       │   ├── components/  (Login, Signup, GoalList, DailyPlanner, ChatWindow, ProtectedRoute)
+│       │   ├── context/     (AuthContext)
+│       │   ├── services/    (api.js)
 │       │   └── App.jsx
 │       ├── public/
 │       └── package.json
@@ -118,7 +132,7 @@ server.port=9090
 spring.profiles.active=local
 ```
 
-> **Note:** `application.properties`/`application-local.properties` containing real credentials should be added to `.gitignore`. Use `application.properties.example` as a template for required keys.
+> **Note:** `application.properties` / `application-local.properties` containing real credentials should be added to `.gitignore`. Use `application.properties.example` as a template for required keys.
 
 ### 4. Run Backend
 
@@ -160,18 +174,22 @@ http://localhost:5173
 | `/api/tasks/goal/{goalId}` | GET | Get tasks for a goal |
 | `/api/tasks/{id}/complete` | PUT | Mark task complete (triggers progress recalculation) |
 | `/api/tasks/{id}/incomplete` | PUT | Mark task incomplete (triggers progress recalculation) |
+| `/api/planner/today/{goalId}` | GET | Generate hour-by-hour daily schedule for a goal |
+| `/api/planner/today` | POST | Generate daily plan from custom task lists |
+| `/api/chat` | POST | Send message to AI Mentor (multi-turn conversation) |
 
 ## Future Enhancements
 
 * Goal Analytics Dashboard
 * Email/in-app notifications on goal completion
 * AI-generated suggestions for stalled goals
+* Persistent chat history saved to database
 * Deployment on AWS/Render/Vercel
 
 ## Author
 
-**Apeksha Shukla**
-GitHub: https://github.com/apekshas698
+**Apeksha Shukla**  
+GitHub: https://github.com/apekshas698  
 LinkedIn: https://www.linkedin.com/in/apeksha-shukla
 
 ## License
