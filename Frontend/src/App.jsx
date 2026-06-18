@@ -6,6 +6,7 @@ import Signup from "./components/Signup";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GoalList from "./components/GoalList";
 import DailyPlanner from "./components/DailyPlanner";
+import ChatWindow from "./components/ChatWindow";
 import { useAuth } from "./context/AuthContext";
 
 function Dashboard() {
@@ -43,7 +44,7 @@ function Dashboard() {
 
   return (
     <div style={{ maxWidth: "900px", margin: "40px auto", padding: "20px", fontFamily: "Arial" }}>
-      
+
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>🤖 AI Task Planner</h1>
@@ -90,6 +91,11 @@ function Dashboard() {
 
       {/* AI Daily Planner */}
       <DailyPlanner />
+
+      <hr style={{ margin: "30px 0" }} />
+
+      {/* AI Mentor Chat */}
+      <ChatWindow />
 
     </div>
   );

@@ -1,5 +1,6 @@
 package com.example.AI.Project.service;
 
+import com.example.AI.Project.dto.ChatMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -87,6 +88,70 @@ public class AIService {
                 """.formatted(goal, completed, pending, availableHours);
 
         return callAI(prompt);
+    }
+
+    public String chat(List<ChatMessage> messages) {
+        try {
+            String url = "https://openrouter.ai/api/v1/chat/completions";
+
+            StringBuilder messagesJson = new StringBuilder();
+            messagesJson.append("[");
+            messagesJson.append("""
+                    {"role":"system","content":"You are an expert software engineering mentor. Help users learn programming, system design, and career growth. Give clear, practical, and encouraging advice. Format responses with short paragraphs. Use bullet points for steps or lists."}
+                    """);
+
+            for (ChatMessage msg : messages) {
+                String safeContent = msg.getContent()
+                        .replace("\\", "\\\\")
+                        .replace("\"", "\\\"")
+                        .replace("\n", "\\n")
+                        .replace("\r", "\\r")
+                        .replace("\t", "\\t");
+
+                messagesJson.append(",{\"role\":\"")
+                        .append(msg.getRole())
+                        .append("\",\"content\":\"")
+                        .append(safeContent)
+                        .append("\"}");
+            }
+
+            messagesJson.append("]");
+
+            String body = """
+                    {
+                      "model": "openai/gpt-oss-20b:free",
+                      "messages": %s
+                    }
+                    """.formatted(messagesJson.toString());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+            headers.add("HTTP-Referer", "http://localhost:5173");
+            headers.add("X-Title", "AI Goal Planner");
+
+            HttpEntity<String> request = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    request,
+                    String.class
+            );
+
+            String json = response.getBody();
+            JsonNode root = objectMapper.readTree(json);
+
+            return root.path("choices")
+                    .get(0)
+                    .path("message")
+                    .path("content")
+                    .asText();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Sorry, I couldn't process your message. Please try again.";
+        }
     }
 
     private String callAI(String prompt) {
