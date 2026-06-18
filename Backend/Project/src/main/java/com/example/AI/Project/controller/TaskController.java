@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -16,7 +17,8 @@ public class TaskController {
     private final TaskRepository taskRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public TaskController(TaskRepository taskRepository, ApplicationEventPublisher eventPublisher) {
+    public TaskController(TaskRepository taskRepository,
+                          ApplicationEventPublisher eventPublisher) {
         this.taskRepository = taskRepository;
         this.eventPublisher = eventPublisher;
     }
@@ -32,10 +34,10 @@ public class TaskController {
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
         task.setCompleted(true);
+        task.setKanbanStatus("DONE");
         Task saved = taskRepository.save(task);
 
         eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
-
         return saved;
     }
 
@@ -45,8 +47,44 @@ public class TaskController {
                 .orElseThrow(() -> new RuntimeException("Task not found"));
 
         task.setCompleted(false);
+        task.setKanbanStatus("TODO");
         Task saved = taskRepository.save(task);
 
+        eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
+        return saved;
+    }
+
+    /**
+     * PATCH /api/tasks/{id}/status
+     *
+     * Updates the Kanban column a task belongs to.
+     * Body: { "kanbanStatus": "IN_PROGRESS", "completed": false }
+     *
+     * Valid kanbanStatus values: TODO | IN_PROGRESS | DONE
+     */
+    @PatchMapping("/{id}/status")
+    public Task updateKanbanStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        String kanbanStatus = (String) body.get("kanbanStatus");
+        Boolean completed   = (Boolean) body.get("completed");
+
+        if (kanbanStatus != null) {
+            task.setKanbanStatus(kanbanStatus);
+        }
+
+        if (completed != null) {
+            // Use the existing setter so completedAt / status fields stay in sync
+            task.setCompleted(completed);
+        }
+
+        Task saved = taskRepository.save(task);
+
+        // Fire the same progress-recalculation event the other endpoints use
         eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
 
         return saved;
