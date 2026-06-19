@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import { PriorityBadge, DifficultyBadge, HoursBadge } from "./TaskPriorityBadge";
 
 function GoalList() {
   const [goals, setGoals] = useState([]);
@@ -21,7 +22,7 @@ function GoalList() {
 
   const fetchTasks = async (goalId) => {
     try {
-      const response = await API.get(`/tasks/goal/${goalId}`);
+      const response = await API.get(`/tasks/goal/${goalId}/sorted`);
       setTasksByGoal((prev) => ({ ...prev, [goalId]: response.data }));
     } catch (error) {
       console.error("Error fetching tasks for goal", goalId, error);
@@ -36,7 +37,6 @@ function GoalList() {
 
       await API.put(endpoint);
 
-      // Refresh tasks for this goal and the goal itself (progress/status updated)
       await fetchTasks(task.goalId);
       await fetchGoals();
     } catch (error) {
@@ -47,7 +47,7 @@ function GoalList() {
   const deleteGoal = async (id) => {
     try {
       await API.delete(`/goals/${id}`);
-      fetchGoals(); // Refresh list after deletion
+      fetchGoals();
     } catch (error) {
       console.error("Error deleting goal:", error);
     }
@@ -55,12 +55,9 @@ function GoalList() {
 
   const statusColor = (status) => {
     switch (status) {
-      case "COMPLETED":
-        return "#28a745";
-      case "IN_PROGRESS":
-        return "#ffc107";
-      default:
-        return "#6c757d";
+      case "COMPLETED":  return "#28a745";
+      case "IN_PROGRESS": return "#ffc107";
+      default:           return "#6c757d";
     }
   };
 
@@ -119,12 +116,7 @@ function GoalList() {
               <small>{goal.progress || 0}% complete</small>
             </div>
 
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                fontFamily: "inherit",
-              }}
-            >
+            <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
               {goal.plan}
             </pre>
 
@@ -134,23 +126,28 @@ function GoalList() {
                 <strong>Tasks</strong>
                 <ul style={{ listStyle: "none", paddingLeft: 0 }}>
                   {tasksByGoal[goal.id].map((task) => (
-                    <li key={task.id} style={{ margin: "6px 0" }}>
-                      <label style={{ cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={task.completed}
-                          onChange={() => toggleTask(task)}
-                          style={{ marginRight: "8px" }}
-                        />
-                        <span
-                          style={{
-                            textDecoration: task.completed ? "line-through" : "none",
-                            color: task.completed ? "#888" : "inherit",
-                          }}
-                        >
-                          {task.taskName}
-                        </span>
-                      </label>
+                    <li key={task.id} style={{ margin: "8px 0" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() => toggleTask(task)}
+                          />
+                          <span
+                            style={{
+                              textDecoration: task.completed ? "line-through" : "none",
+                              color: task.completed ? "#888" : "inherit",
+                              fontSize: "14px",
+                            }}
+                          >
+                            {task.taskName}
+                          </span>
+                        </label>
+                        <PriorityBadge priority={task.aiPriority} />
+                        <DifficultyBadge difficulty={task.difficulty} />
+                        <HoursBadge hours={task.estimatedHours} />
+                      </div>
                     </li>
                   ))}
                 </ul>

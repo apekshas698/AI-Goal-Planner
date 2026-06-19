@@ -1,7 +1,13 @@
 package com.example.AI.Project.controller;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import com.example.AI.Project.dto.TaskPriorityDTO;
+import com.example.AI.Project.dto.TaskPriorityResponseDTO;
 import com.example.AI.Project.dto.TaskResponseDTO;
 import com.example.AI.Project.model.Goal;
 import com.example.AI.Project.model.Task;
@@ -52,9 +58,7 @@ public class GoalController {
     @PostMapping
     public Goal createGoal(@RequestBody Goal goal) {
 
-        String roadmap =
-                aiService.generatePlan(goal.getTitle());
-
+        String roadmap = aiService.generatePlan(goal.getTitle());
         goal.setPlan(roadmap);
 
         if (goal.getStatus() == null) {
@@ -82,25 +86,117 @@ public class GoalController {
                 return;
             }
 
+            // Strip markdown fences if AI wraps response in ```json ... ```
+            String cleanTasksJson = stripMarkdown(tasksJson);
+
             TaskResponseDTO response =
-                    objectMapper.readValue(tasksJson, TaskResponseDTO.class);
+                    objectMapper.readValue(cleanTasksJson, TaskResponseDTO.class);
 
             if (response.getTasks() == null) {
                 return;
             }
 
+            // Save all tasks first
+            List<Task> savedTasks = new ArrayList<>();
             response.getTasks().forEach(taskDto -> {
                 if (taskDto.getName() == null || taskDto.getName().isBlank()) {
                     return;
                 }
                 Task task = new Task(goal.getId(), taskDto.getName());
-                taskRepository.save(task);
+                savedTasks.add(taskRepository.save(task));
+            });
+
+            // Then ask AI to prioritize them in a second pass
+            if (!savedTasks.isEmpty()) {
+                prioritizeSavedTasks(goal.getTitle(), savedTasks);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void prioritizeSavedTasks(String goalTitle, List<Task> tasks) {
+        try {
+            List<String> names = tasks.stream()
+                    .map(Task::getTaskName)
+                    .collect(Collectors.toList());
+
+            String json = aiService.prioritizeTasks(goalTitle, names);
+
+            // DEBUG: print raw AI response to IntelliJ console
+            System.out.println("=== PRIORITY RAW JSON ===");
+            System.out.println(json);
+            System.out.println("=========================");
+
+            if (json == null || json.isBlank()) {
+                System.out.println("PRIORITY JSON is null or blank — skipping.");
+                return;
+            }
+
+            // Strip markdown fences if AI returns ```json ... ```
+            String cleanJson = stripMarkdown(json);
+
+            System.out.println("=== PRIORITY CLEAN JSON ===");
+            System.out.println(cleanJson);
+            System.out.println("===========================");
+
+            TaskPriorityResponseDTO prioritized =
+                    objectMapper.readValue(cleanJson, TaskPriorityResponseDTO.class);
+
+            if (prioritized.getTasks() == null) {
+                System.out.println("PRIORITY: tasks list is null after parsing.");
+                return;
+            }
+
+            System.out.println("PRIORITY: parsed " + prioritized.getTasks().size() + " tasks.");
+
+            // Build a lookup map by task name for O(1) matching
+            Map<String, TaskPriorityDTO> byName = new HashMap<>();
+            prioritized.getTasks().forEach(p -> byName.put(p.getName(), p));
+
+            // Apply priority data and save each task
+            tasks.forEach(task -> {
+                TaskPriorityDTO p = byName.get(task.getTaskName());
+                if (p != null) {
+                    task.setAiPriority(p.getPriority());
+                    task.setEstimatedHours(p.getEstimatedHours());
+                    task.setDifficulty(p.getDifficulty());
+                    taskRepository.save(task);
+                    System.out.println("Saved priority for: " + task.getTaskName()
+                            + " → " + p.getPriority()
+                            + " | " + p.getDifficulty()
+                            + " | " + p.getEstimatedHours() + "h");
+                } else {
+                    System.out.println("No match found for task: " + task.getTaskName());
+                }
             });
 
         } catch (Exception e) {
-            // Don't fail goal creation if task generation/parsing fails
+            System.out.println("PRIORITY PARSE ERROR: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Strips markdown code fences that some AI models wrap JSON in.
+     * Handles: ```json ... ``` and ``` ... ```
+     */
+    private String stripMarkdown(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        // Remove ```json or ``` at start
+        if (trimmed.startsWith("```")) {
+            int firstNewline = trimmed.indexOf('\n');
+            if (firstNewline != -1) {
+                trimmed = trimmed.substring(firstNewline + 1);
+            }
+        }
+        // Remove ``` at end
+        if (trimmed.endsWith("```")) {
+            trimmed = trimmed.substring(0, trimmed.lastIndexOf("```")).trim();
+        }
+        return trimmed;
     }
 
     @GetMapping

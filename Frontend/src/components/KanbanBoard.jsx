@@ -1,9 +1,8 @@
-// src/components/KanbanBoard.jsx
-// npm install @hello-pangea/dnd
 
 import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import API from "../services/api";
+import { PriorityBadge } from "./TaskPriorityBadge";
 
 const COLUMNS = [
   { id: "TODO",        label: "📋 Todo",       color: "#6c757d", bg: "#f8f9fa", border: "#dee2e6", badge: "#6c757d" },
@@ -36,7 +35,7 @@ export default function KanbanBoard() {
   useEffect(() => {
     if (!selectedGoalId) return;
     setLoading(true);
-    API.get("/tasks/goal/" + selectedGoalId).then((res) => {
+    API.get("/tasks/goal/" + selectedGoalId + "/sorted").then((res) => {
       const grouped = { TODO:[], IN_PROGRESS:[], DONE:[] };
       res.data.forEach((task) => {
         const col = task.kanbanStatus && grouped[task.kanbanStatus] !== undefined
@@ -79,8 +78,7 @@ export default function KanbanBoard() {
       });
     } catch (err) {
       console.error("Failed to save:", err);
-      // Rollback: re-fetch from server on failure
-      API.get("/tasks/goal/" + selectedGoalId).then((res) => {
+      API.get("/tasks/goal/" + selectedGoalId + "/sorted").then((res) => {
         const grouped = { TODO:[], IN_PROGRESS:[], DONE:[] };
         res.data.forEach((task) => {
           const col =
@@ -184,7 +182,6 @@ export default function KanbanBoard() {
                   </span>
                 </div>
 
-                {/* Droppable zone — key prop added here */}
                 <Droppable droppableId={col.id} key={col.id}>
                   {(provided, snapshot) => (
                     <div
@@ -229,14 +226,22 @@ export default function KanbanBoard() {
                                 <span style={{ fontSize:"15px", flexShrink:0, marginTop:"1px" }}>
                                   {col.id === "DONE" ? "✅" : col.id === "IN_PROGRESS" ? "⚡" : "📌"}
                                 </span>
-                                <span style={{
-                                  fontSize:"13.5px",
-                                  color: col.id === "DONE" ? "#999" : "#333",
-                                  textDecoration: col.id === "DONE" ? "line-through" : "none",
-                                  lineHeight:"1.45",
-                                }}>
-                                  {task.taskName}
-                                </span>
+                                <div style={{ flex: 1 }}>
+                                  <span style={{
+                                    fontSize:"13.5px",
+                                    color: col.id === "DONE" ? "#999" : "#333",
+                                    textDecoration: col.id === "DONE" ? "line-through" : "none",
+                                    lineHeight:"1.45",
+                                    display: "block",
+                                  }}>
+                                    {task.taskName}
+                                  </span>
+                                  {task.aiPriority && (
+                                    <div style={{ marginTop: "6px" }}>
+                                      <PriorityBadge priority={task.aiPriority} />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}

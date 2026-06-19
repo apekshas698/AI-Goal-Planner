@@ -7,6 +7,8 @@ import com.example.AI.Project.repository.TaskRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +28,21 @@ public class TaskController {
     @GetMapping("/goal/{goalId}")
     public List<Task> getTasksByGoal(@PathVariable Long goalId) {
         return taskRepository.findByGoalId(goalId);
+    }
+    @GetMapping("/goal/{goalId}/sorted")
+    public List<Task> getTasksByGoalSorted(@PathVariable Long goalId) {
+        List<Task> tasks = taskRepository.findByGoalId(goalId);
+
+        Map<String, Integer> priorityOrder = new HashMap<>();
+        priorityOrder.put("HIGH",   0);
+        priorityOrder.put("MEDIUM", 1);
+        priorityOrder.put("LOW",    2);
+
+        tasks.sort(Comparator.comparingInt(task ->
+                priorityOrder.getOrDefault(task.getAiPriority(), 3)
+        ));
+
+        return tasks;
     }
 
     @PutMapping("/{id}/complete")
@@ -78,13 +95,11 @@ public class TaskController {
         }
 
         if (completed != null) {
-            // Use the existing setter so completedAt / status fields stay in sync
             task.setCompleted(completed);
         }
 
         Task saved = taskRepository.save(task);
 
-        // Fire the same progress-recalculation event the other endpoints use
         eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
 
         return saved;

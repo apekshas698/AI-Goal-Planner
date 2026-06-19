@@ -21,17 +21,21 @@ public class Task {
 
     private String status;
 
-    /**
-     * Tracks which Kanban column this task lives in.
-     * Values: "TODO" | "IN_PROGRESS" | "DONE"
-     * Defaults to "TODO" on creation.
-     */
     @Column(name = "kanban_status")
     private String kanbanStatus;
 
     private LocalDateTime createdAt;
 
     private LocalDateTime completedAt;
+
+    @Column(name = "ai_priority")
+    private String aiPriority;        // HIGH, MEDIUM, LOW
+
+    @Column(name = "estimated_hours")
+    private Integer estimatedHours;   // AI estimate of effort in hours
+
+    @Column(name = "difficulty")
+    private String difficulty;        // EASY, MEDIUM, HARD
 
     public Task() {
         this.createdAt    = LocalDateTime.now();
@@ -53,26 +57,32 @@ public class Task {
 
     // ── Getters ──────────────────────────────────────────────
 
-    public Long getId()                  { return id; }
-    public Long getGoalId()              { return goalId; }
-    public String getTaskName()          { return taskName; }
-    public boolean isCompleted()         { return completed; }
-    public Integer getPriority()         { return priority; }
-    public String getStatus()            { return status; }
-    public String getKanbanStatus()      { return kanbanStatus; }
-    public LocalDateTime getCreatedAt()  { return createdAt; }
-    public LocalDateTime getCompletedAt(){ return completedAt; }
+    public Long getId()                   { return id; }
+    public Long getGoalId()               { return goalId; }
+    public String getTaskName()           { return taskName; }
+    public boolean isCompleted()          { return completed; }
+    public Integer getPriority()          { return priority; }
+    public String getStatus()             { return status; }
+    public String getKanbanStatus()       { return kanbanStatus; }
+    public LocalDateTime getCreatedAt()   { return createdAt; }
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public String getAiPriority()         { return aiPriority; }
+    public Integer getEstimatedHours()    { return estimatedHours; }
+    public String getDifficulty()         { return difficulty; }
 
     // ── Setters ──────────────────────────────────────────────
 
-    public void setId(Long id)                          { this.id = id; }
-    public void setGoalId(Long goalId)                  { this.goalId = goalId; }
-    public void setTaskName(String taskName)            { this.taskName = taskName; }
-    public void setPriority(Integer priority)           { this.priority = priority; }
-    public void setStatus(String status)                { this.status = status; }
-    public void setKanbanStatus(String kanbanStatus)    { this.kanbanStatus = kanbanStatus; }
-    public void setCreatedAt(LocalDateTime createdAt)   { this.createdAt = createdAt; }
-    public void setCompletedAt(LocalDateTime completedAt){ this.completedAt = completedAt; }
+    public void setId(Long id)                            { this.id = id; }
+    public void setGoalId(Long goalId)                    { this.goalId = goalId; }
+    public void setTaskName(String taskName)              { this.taskName = taskName; }
+    public void setPriority(Integer priority)             { this.priority = priority; }
+    public void setStatus(String status)                  { this.status = status; }
+    public void setKanbanStatus(String kanbanStatus)      { this.kanbanStatus = kanbanStatus; }
+    public void setCreatedAt(LocalDateTime createdAt)     { this.createdAt = createdAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+    public void setAiPriority(String aiPriority)          { this.aiPriority = aiPriority; }
+    public void setEstimatedHours(Integer estimatedHours) { this.estimatedHours = estimatedHours; }
+    public void setDifficulty(String difficulty)          { this.difficulty = difficulty; }
 
     public void setCompleted(boolean completed) {
         this.completed = completed;
@@ -80,11 +90,11 @@ public class Task {
         if (completed) {
             this.status       = "COMPLETED";
             this.completedAt  = LocalDateTime.now();
-            this.kanbanStatus = "DONE";      // keep Kanban in sync
+            this.kanbanStatus = "DONE";
         } else {
             this.status       = "PENDING";
             this.completedAt  = null;
-            this.kanbanStatus = "TODO";      // reset to TODO when un-checked
+            this.kanbanStatus = "TODO";
         }
     }
 }

@@ -20,7 +20,6 @@ public class AIService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public String generatePlan(String goal) {
-
         String prompt = """
                 Create a detailed roadmap for %s.
                 Give phases, tasks, projects and milestones.
@@ -30,7 +29,6 @@ public class AIService {
     }
 
     public String generateTasks(String goal) {
-
         String prompt = """
                 Create 10 actionable tasks for the goal: %s
 
@@ -50,6 +48,34 @@ public class AIService {
                 Do not return explanation.
                 Do not use ```json.
                 """.formatted(goal.replace("%", "%%"));
+
+        return callAI(prompt);
+    }
+
+    public String prioritizeTasks(String goal, List<String> taskNames) {
+        String taskList = String.join(", ", taskNames);
+
+        String prompt = """
+                You are an expert project planner. Given a goal and a list of tasks, assign a priority, difficulty, and estimated hours to each task.
+
+                Goal: %s
+                Tasks: %s
+
+                Return ONLY valid JSON in this exact structure:
+
+                {
+                  "tasks": [
+                    {"name":"Task name","priority":"HIGH","estimatedHours":2,"difficulty":"MEDIUM"},
+                    {"name":"Task name","priority":"LOW","estimatedHours":1,"difficulty":"EASY"}
+                  ]
+                }
+
+                Priority must be: HIGH, MEDIUM, or LOW
+                Difficulty must be: EASY, MEDIUM, or HARD
+                estimatedHours must be a number between 1 and 8
+
+                Do not return markdown. Do not return explanation. Do not use ```json.
+                """.formatted(goal.replace("%", "%%"), taskList.replace("%", "%%"));
 
         return callAI(prompt);
     }
@@ -155,9 +181,7 @@ public class AIService {
     }
 
     private String callAI(String prompt) {
-
         try {
-
             String url = "https://openrouter.ai/api/v1/chat/completions";
 
             String body = """
@@ -177,10 +201,8 @@ public class AIService {
                     """.formatted(prompt.replace("\"", "\\\"").replace("\n", "\\n"));
 
             HttpHeaders headers = new HttpHeaders();
-
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiKey);
-
             headers.add("HTTP-Referer", "http://localhost:5173");
             headers.add("X-Title", "AI Goal Planner");
 
@@ -194,16 +216,13 @@ public class AIService {
             );
 
             String json = response.getBody();
-
             JsonNode root = objectMapper.readTree(json);
 
-            String content = root.path("choices")
+            return root.path("choices")
                     .get(0)
                     .path("message")
                     .path("content")
                     .asText();
-
-            return content;
 
         } catch (Exception e) {
             e.printStackTrace();
