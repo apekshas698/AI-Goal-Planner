@@ -1,6 +1,7 @@
 package com.example.AI.Project.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "goals")
@@ -18,6 +19,9 @@ public class Goal {
     private String status;
 
     private Integer progress;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private Integer targetDays;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -46,6 +50,14 @@ public class Goal {
         return progress;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public Integer getTargetDays() {
+        return targetDays;
+    }
+
     public User getUser() {
         return user;
     }
@@ -64,6 +76,14 @@ public class Goal {
 
     public void setProgress(Integer progress) {
         this.progress = progress;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setTargetDays(Integer targetDays) {
+        this.targetDays = targetDays;
     }
 
     public void setUser(User user) {

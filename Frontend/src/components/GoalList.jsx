@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 import { PriorityBadge, DifficultyBadge, HoursBadge } from "./TaskPriorityBadge";
+import DeadlinePrediction from "./DeadlinePrediction";
 
 function GoalList() {
   const [goals, setGoals] = useState([]);
@@ -115,6 +116,9 @@ function GoalList() {
               </div>
               <small>{goal.progress || 0}% complete</small>
             </div>
+
+            {/* Deadline Prediction Agent */}
+            <DeadlinePrediction goalId={goal.id} />
 
             <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
               {goal.plan}

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.example.AI.Project.dto.DeadlinePredictionDTO;
 import com.example.AI.Project.dto.TaskPriorityDTO;
 import com.example.AI.Project.dto.TaskPriorityResponseDTO;
 import com.example.AI.Project.dto.TaskResponseDTO;
@@ -16,12 +17,15 @@ import com.example.AI.Project.repository.GoalRepository;
 import com.example.AI.Project.repository.TaskRepository;
 import com.example.AI.Project.repository.UserRepository;
 import com.example.AI.Project.service.AIService;
+import com.example.AI.Project.service.PredictionService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/goals")
@@ -31,18 +35,21 @@ public class GoalController {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final AIService aiService;
+    private final PredictionService predictionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public GoalController(
             GoalRepository repository,
             UserRepository userRepository,
             TaskRepository taskRepository,
-            AIService aiService) {
+            AIService aiService,
+            PredictionService predictionService) {
 
         this.repository = repository;
         this.userRepository = userRepository;
         this.taskRepository = taskRepository;
         this.aiService = aiService;
+        this.predictionService = predictionService;
     }
 
     private User getCurrentUser() {
@@ -67,6 +74,10 @@ public class GoalController {
 
         if (goal.getProgress() == null) {
             goal.setProgress(0);
+        }
+
+        if (goal.getCreatedAt() == null) {
+            goal.setCreatedAt(LocalDateTime.now());
         }
 
         goal.setUser(getCurrentUser());
@@ -124,32 +135,19 @@ public class GoalController {
 
             String json = aiService.prioritizeTasks(goalTitle, names);
 
-            // DEBUG: print raw AI response to IntelliJ console
-            System.out.println("=== PRIORITY RAW JSON ===");
-            System.out.println(json);
-            System.out.println("=========================");
-
             if (json == null || json.isBlank()) {
-                System.out.println("PRIORITY JSON is null or blank — skipping.");
                 return;
             }
 
             // Strip markdown fences if AI returns ```json ... ```
             String cleanJson = stripMarkdown(json);
 
-            System.out.println("=== PRIORITY CLEAN JSON ===");
-            System.out.println(cleanJson);
-            System.out.println("===========================");
-
             TaskPriorityResponseDTO prioritized =
                     objectMapper.readValue(cleanJson, TaskPriorityResponseDTO.class);
 
             if (prioritized.getTasks() == null) {
-                System.out.println("PRIORITY: tasks list is null after parsing.");
                 return;
             }
-
-            System.out.println("PRIORITY: parsed " + prioritized.getTasks().size() + " tasks.");
 
             // Build a lookup map by task name for O(1) matching
             Map<String, TaskPriorityDTO> byName = new HashMap<>();
@@ -163,17 +161,10 @@ public class GoalController {
                     task.setEstimatedHours(p.getEstimatedHours());
                     task.setDifficulty(p.getDifficulty());
                     taskRepository.save(task);
-                    System.out.println("Saved priority for: " + task.getTaskName()
-                            + " → " + p.getPriority()
-                            + " | " + p.getDifficulty()
-                            + " | " + p.getEstimatedHours() + "h");
-                } else {
-                    System.out.println("No match found for task: " + task.getTaskName());
                 }
             });
 
         } catch (Exception e) {
-            System.out.println("PRIORITY PARSE ERROR: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -203,6 +194,21 @@ public class GoalController {
     public List<Goal> getGoals() {
         User user = getCurrentUser();
         return repository.findByUserId(user.getId());
+    }
+
+    // Deadline Prediction Agent
+    @GetMapping("/{id}/prediction")
+    public DeadlinePredictionDTO getDeadlinePrediction(@PathVariable Long id) {
+        Goal goal = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Goal not found"));
+
+        User user = getCurrentUser();
+        if (!goal.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Not authorized");
+        }
+
+        List<Task> tasks = taskRepository.findByGoalId(id);
+        return predictionService.predict(goal, tasks);
     }
 
     @DeleteMapping("/{id}")
@@ -239,6 +245,7 @@ public class GoalController {
         goal.setTitle(updatedGoal.getTitle());
         goal.setStatus(updatedGoal.getStatus());
         goal.setProgress(updatedGoal.getProgress());
+        goal.setTargetDays(updatedGoal.getTargetDays());
 
         return repository.save(goal);
     }

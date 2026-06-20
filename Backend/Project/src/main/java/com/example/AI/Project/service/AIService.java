@@ -180,6 +180,49 @@ public class AIService {
         }
     }
 
+    public String generateProgressInsight(String goalTitle,
+                                          int progress,
+                                          int completedTasks,
+                                          int totalTasks,
+                                          double paceHoursPerDay,
+                                          String predictedFinishDate,
+                                          int probability,
+                                          String deadlineDate) {
+
+        String deadlineLine = deadlineDate != null
+                ? "Target deadline: " + deadlineDate
+                : "No fixed deadline set.";
+
+        String prompt = """
+                You are an AI progress coach reviewing a user's goal.
+
+                Goal: %s
+                Progress: %d%% complete (%d of %d tasks done)
+                Current pace: %.1f hours of work per day
+                Predicted finish date: %s
+                Completion probability: %d%%
+                %s
+
+                Write ONE short, specific, encouraging sentence (max 22 words) about
+                their progress and one concrete next step. No markdown, no quotes.
+                """.formatted(
+                goalTitle.replace("%", "%%"),
+                progress, completedTasks, totalTasks,
+                paceHoursPerDay, predictedFinishDate, probability,
+                deadlineLine.replace("%", "%%")
+        );
+
+        String result = callAI(prompt);
+
+        if (result == null || result.isBlank()) {
+            return probability >= 60
+                    ? "You're on track — keep up the consistent pace to hit your goal."
+                    : "Pace is a bit behind target — try blocking dedicated time daily to catch up.";
+        }
+
+        return result.trim().replace("\"", "");
+    }
+
     private String callAI(String prompt) {
         try {
             String url = "https://openrouter.ai/api/v1/chat/completions";

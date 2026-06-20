@@ -9,10 +9,12 @@ import GoalList from "./components/GoalList";
 import DailyPlanner from "./components/DailyPlanner";
 import KanbanBoard from "./components/KanbanBoard";
 import ChatWindow from "./components/ChatWindow";
+import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import { useAuth } from "./context/AuthContext";
 
 function Dashboard() {
   const [title, setTitle] = useState("");
+  const [targetDays, setTargetDays] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("goals");
@@ -26,8 +28,12 @@ function Dashboard() {
     }
     setLoading(true);
     try {
-      await API.post("/goals", { title });
+      await API.post("/goals", {
+        title,
+        targetDays: targetDays ? Number(targetDays) : null,
+      });
       setTitle("");
+      setTargetDays("");
       setRefreshKey((prev) => prev + 1);
       alert("Goal Created Successfully");
     } catch (error) {
@@ -58,7 +64,6 @@ function Dashboard() {
   return (
     <div style={{ maxWidth: "960px", margin: "40px auto", padding: "20px", fontFamily: "Arial" }}>
 
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <h1 style={{ margin: 0 }}>🤖 AI Task Planner</h1>
         <button
@@ -76,34 +81,28 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* Create Goal */}
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "20px", display: "flex", flexWrap: "wrap", gap: "0" }}>
         <input
           type="text"
           placeholder="Enter your goal..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          style={{
-            padding: "10px",
-            width: "68%",
-            marginRight: "10px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-          }}
+          style={{ padding: "10px", width: "50%", marginRight: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
+        />
+        <input
+          type="number"
+          placeholder="Target days (optional)"
+          value={targetDays}
+          onChange={(e) => setTargetDays(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+          min={1}
+          style={{ padding: "10px", width: "160px", marginRight: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
         />
         <button
           onClick={handleSubmit}
           disabled={loading}
-          style={{
-            padding: "10px 20px",
-            cursor: "pointer",
-            backgroundColor: "#6f42c1",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontWeight: "bold",
-          }}
+          style={{ padding: "10px 20px", cursor: "pointer", backgroundColor: "#6f42c1", color: "white", border: "none", borderRadius: "6px", fontWeight: "bold" }}
         >
           {loading ? "Creating..." : "Create Goal"}
         </button>
@@ -111,19 +110,19 @@ function Dashboard() {
 
       <hr style={{ marginBottom: 0, borderColor: "#e0e0e0" }} />
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: "4px", marginBottom: "24px", borderBottom: "1px solid #e0e0e0" }}>
-        <button style={TAB_STYLE(activeTab === "goals")}   onClick={() => setActiveTab("goals")}>📋 Goals</button>
-        <button style={TAB_STYLE(activeTab === "kanban")}  onClick={() => setActiveTab("kanban")}>🗂 Kanban Board</button>
-        <button style={TAB_STYLE(activeTab === "planner")} onClick={() => setActiveTab("planner")}>📅 Daily Planner</button>
-        <button style={TAB_STYLE(activeTab === "chat")}    onClick={() => setActiveTab("chat")}>💬 AI Mentor</button>
+      <div style={{ display: "flex", gap: "4px", marginBottom: "24px", borderBottom: "1px solid #e0e0e0", flexWrap: "wrap" }}>
+        <button style={TAB_STYLE(activeTab === "goals")}     onClick={() => setActiveTab("goals")}>📋 Goals</button>
+        <button style={TAB_STYLE(activeTab === "kanban")}    onClick={() => setActiveTab("kanban")}>🗂 Kanban Board</button>
+        <button style={TAB_STYLE(activeTab === "planner")}   onClick={() => setActiveTab("planner")}>📅 Daily Planner</button>
+        <button style={TAB_STYLE(activeTab === "analytics")} onClick={() => setActiveTab("analytics")}>📊 Analytics</button>
+        <button style={TAB_STYLE(activeTab === "chat")}      onClick={() => setActiveTab("chat")}>💬 AI Mentor</button>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === "goals"   && <GoalList key={refreshKey} />}
-      {activeTab === "kanban"  && <KanbanBoard key={refreshKey} />}
-      {activeTab === "planner" && <DailyPlanner />}
-      {activeTab === "chat"    && <ChatWindow />}
+      {activeTab === "goals"     && <GoalList key={refreshKey} />}
+      {activeTab === "kanban"    && <KanbanBoard key={refreshKey} />}
+      {activeTab === "planner"   && <DailyPlanner />}
+      {activeTab === "analytics" && <AnalyticsDashboard key={refreshKey} />}
+      {activeTab === "chat"      && <ChatWindow />}
 
     </div>
   );
