@@ -223,6 +223,30 @@ public class AIService {
         return result.trim().replace("\"", "");
     }
 
+    public String generateResumeSection(String target, String section, String description) {
+        String prompt = """
+                You are an expert tech career coach helping a student prepare for: %s
+
+                Generate a concise, actionable %s roadmap covering: %s
+
+                Format your response as a numbered list of 6-8 key items.
+                Each item should be on its own line starting with a number and period.
+                After each item, add a short (5-8 word) tip or resource in parentheses.
+
+                Example format:
+                1. Topic or task name (Tip or resource here)
+                2. Topic or task name (Tip or resource here)
+
+                Be specific to the target role. No markdown headers. No extra explanation. Just the numbered list.
+                """.formatted(
+                target.replace("%", "%%"),
+                section.replace("%", "%%"),
+                description.replace("%", "%%")
+        );
+
+        return callAI(prompt);
+    }
+
     private String callAI(String prompt) {
         try {
             String url = "https://openrouter.ai/api/v1/chat/completions";

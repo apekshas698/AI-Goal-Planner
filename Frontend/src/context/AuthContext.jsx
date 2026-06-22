@@ -11,6 +11,13 @@ export function AuthProvider({ children }) {
     const newToken = response.data.token;
     localStorage.setItem("token", newToken);
     setToken(newToken);
+
+    // Record daily activity for streak tracking (fire-and-forget)
+    try {
+      await API.post("/streak/ping");
+    } catch (_) {
+      // Non-critical — streak ping failure should never block login
+    }
   };
 
   const signup = async (name, email, password) => {

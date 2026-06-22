@@ -1,4 +1,4 @@
-// src/components/AnalyticsDashboard.jsx
+
 import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,

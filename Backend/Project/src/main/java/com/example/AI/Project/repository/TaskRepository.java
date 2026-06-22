@@ -6,4 +6,6 @@ import com.example.AI.Project.model.Task;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByGoalId(Long goalId);
+
+    long countByGoalIdInAndCompletedFalse(List<Long> goalIds);
 }

@@ -2,9 +2,14 @@ package com.example.AI.Project.controller;
 
 import com.example.AI.Project.event.TaskCompletedEvent;
 import com.example.AI.Project.model.Task;
+import com.example.AI.Project.model.User;
 import com.example.AI.Project.repository.TaskRepository;
+import com.example.AI.Project.repository.UserRepository;
+import com.example.AI.Project.service.StreakService;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
@@ -18,17 +23,30 @@ public class TaskController {
 
     private final TaskRepository taskRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final StreakService streakService;
+    private final UserRepository userRepository;
 
     public TaskController(TaskRepository taskRepository,
-                          ApplicationEventPublisher eventPublisher) {
+                          ApplicationEventPublisher eventPublisher,
+                          StreakService streakService,
+                          UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.eventPublisher = eventPublisher;
+        this.streakService = streakService;
+        this.userRepository = userRepository;
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     @GetMapping("/goal/{goalId}")
     public List<Task> getTasksByGoal(@PathVariable Long goalId) {
         return taskRepository.findByGoalId(goalId);
     }
+
     @GetMapping("/goal/{goalId}/sorted")
     public List<Task> getTasksByGoalSorted(@PathVariable Long goalId) {
         List<Task> tasks = taskRepository.findByGoalId(goalId);
@@ -54,6 +72,9 @@ public class TaskController {
         task.setKanbanStatus("DONE");
         Task saved = taskRepository.save(task);
 
+        // Update streak on task completion
+        streakService.updateStreak(getCurrentUser());
+
         eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
         return saved;
     }
@@ -71,14 +92,6 @@ public class TaskController {
         return saved;
     }
 
-    /**
-     * PATCH /api/tasks/{id}/status
-     *
-     * Updates the Kanban column a task belongs to.
-     * Body: { "kanbanStatus": "IN_PROGRESS", "completed": false }
-     *
-     * Valid kanbanStatus values: TODO | IN_PROGRESS | DONE
-     */
     @PatchMapping("/{id}/status")
     public Task updateKanbanStatus(
             @PathVariable Long id,
@@ -96,12 +109,15 @@ public class TaskController {
 
         if (completed != null) {
             task.setCompleted(completed);
+            // Update streak when task is marked done via kanban drag
+            if (completed) {
+                streakService.updateStreak(getCurrentUser());
+            }
         }
 
         Task saved = taskRepository.save(task);
 
         eventPublisher.publishEvent(new TaskCompletedEvent(task.getGoalId()));
-
         return saved;
     }
 }

@@ -10,22 +10,30 @@ import DailyPlanner from "./components/DailyPlanner";
 import KanbanBoard from "./components/KanbanBoard";
 import ChatWindow from "./components/ChatWindow";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
+import StreakBadge from "./components/StreakBadge";
+import ResumeRoadmap from "./components/ResumeRoadmap";
 import { useAuth } from "./context/AuthContext";
 
+const TABS = [
+  { id: "goals",     label: "Goals",          icon: "📋" },
+  { id: "kanban",    label: "Kanban",          icon: "🗂"  },
+  { id: "planner",   label: "Daily Planner",   icon: "📅" },
+  { id: "analytics", label: "Analytics",       icon: "📊" },
+  { id: "resume",    label: "Resume Roadmap",  icon: "📄" },
+  { id: "chat",      label: "AI Mentor",       icon: "💬" },
+];
+
 function Dashboard() {
-  const [title, setTitle] = useState("");
+  const [title, setTitle]           = useState("");
   const [targetDays, setTargetDays] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]       = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [activeTab, setActiveTab] = useState("goals");
+  const [activeTab, setActiveTab]   = useState("goals");
   const { logout } = useAuth();
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      alert("Please enter a goal");
-      return;
-    }
+    if (!title.trim()) return;
     setLoading(true);
     try {
       await API.post("/goals", {
@@ -34,96 +42,98 @@ function Dashboard() {
       });
       setTitle("");
       setTargetDays("");
-      setRefreshKey((prev) => prev + 1);
-      alert("Goal Created Successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create goal");
+      setRefreshKey((k) => k + 1);
+      setActiveTab("goals");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create goal. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
-  const TAB_STYLE = (active) => ({
-    padding: "9px 22px",
-    cursor: "pointer",
-    border: "none",
-    borderBottom: active ? "3px solid #6f42c1" : "3px solid transparent",
-    background: "transparent",
-    fontWeight: active ? "700" : "400",
-    color: active ? "#6f42c1" : "#666",
-    fontSize: "14px",
-    transition: "all 0.2s",
-  });
+  const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
-    <div style={{ maxWidth: "960px", margin: "40px auto", padding: "20px", fontFamily: "Arial" }}>
+    <div className="dash-root">
+      {/* Navbar */}
+      <nav className="dash-nav">
+        <div className="dash-nav-inner">
+          <div className="dash-logo">
+            <div className="dash-logo-icon">🤖</div>
+            PlanAI
+          </div>
+          <div className="dash-nav-right">
+            <div className="dash-user-pill">
+              <span>👤</span>
+              <span>My Workspace</span>
+            </div>
+            <button className="dash-logout-btn" onClick={handleLogout}>
+              Sign out
+            </button>
+          </div>
+        </div>
+      </nav>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h1 style={{ margin: 0 }}>🤖 AI Task Planner</h1>
-        <button
-          onClick={handleLogout}
-          style={{
-            padding: "8px 16px",
-            cursor: "pointer",
-            backgroundColor: "#6c757d",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-          }}
-        >
-          Logout
-        </button>
-      </div>
+      {/* Main */}
+      <main className="dash-main">
+        <StreakBadge key={refreshKey} />
 
-      <div style={{ marginBottom: "20px", display: "flex", flexWrap: "wrap", gap: "0" }}>
-        <input
-          type="text"
-          placeholder="Enter your goal..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          style={{ padding: "10px", width: "50%", marginRight: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-        />
-        <input
-          type="number"
-          placeholder="Target days (optional)"
-          value={targetDays}
-          onChange={(e) => setTargetDays(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          min={1}
-          style={{ padding: "10px", width: "160px", marginRight: "10px", borderRadius: "6px", border: "1px solid #ccc" }}
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{ padding: "10px 20px", cursor: "pointer", backgroundColor: "#6f42c1", color: "white", border: "none", borderRadius: "6px", fontWeight: "bold" }}
-        >
-          {loading ? "Creating..." : "Create Goal"}
-        </button>
-      </div>
+        {/* Goal creation card */}
+        <div className="create-card">
+          <div className="create-card-title">What's your next goal?</div>
+          <div className="create-card-sub">
+            AI will generate a full roadmap and prioritised tasks instantly
+          </div>
+          <div className="create-card-row">
+            <input
+              className="create-input"
+              type="text"
+              placeholder="e.g. Learn Spring Boot, Crack FAANG interview…"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            />
+            <input
+              className="create-input create-input-days"
+              type="number"
+              placeholder="Target days"
+              value={targetDays}
+              onChange={(e) => setTargetDays(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              min={1}
+            />
+            <button
+              className="create-submit-btn"
+              onClick={handleSubmit}
+              disabled={loading || !title.trim()}
+            >
+              {loading ? "Creating…" : "✨ Create Goal"}
+            </button>
+          </div>
+        </div>
 
-      <hr style={{ marginBottom: 0, borderColor: "#e0e0e0" }} />
+        {/* Tab bar */}
+        <div className="tab-bar">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`tab-btn${activeTab === tab.id ? " active" : ""}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
 
-      <div style={{ display: "flex", gap: "4px", marginBottom: "24px", borderBottom: "1px solid #e0e0e0", flexWrap: "wrap" }}>
-        <button style={TAB_STYLE(activeTab === "goals")}     onClick={() => setActiveTab("goals")}>📋 Goals</button>
-        <button style={TAB_STYLE(activeTab === "kanban")}    onClick={() => setActiveTab("kanban")}>🗂 Kanban Board</button>
-        <button style={TAB_STYLE(activeTab === "planner")}   onClick={() => setActiveTab("planner")}>📅 Daily Planner</button>
-        <button style={TAB_STYLE(activeTab === "analytics")} onClick={() => setActiveTab("analytics")}>📊 Analytics</button>
-        <button style={TAB_STYLE(activeTab === "chat")}      onClick={() => setActiveTab("chat")}>💬 AI Mentor</button>
-      </div>
-
-      {activeTab === "goals"     && <GoalList key={refreshKey} />}
-      {activeTab === "kanban"    && <KanbanBoard key={refreshKey} />}
-      {activeTab === "planner"   && <DailyPlanner />}
-      {activeTab === "analytics" && <AnalyticsDashboard key={refreshKey} />}
-      {activeTab === "chat"      && <ChatWindow />}
-
+        {/* Tab panels */}
+        {activeTab === "goals"     && <GoalList key={refreshKey} />}
+        {activeTab === "kanban"    && <KanbanBoard key={refreshKey} />}
+        {activeTab === "planner"   && <DailyPlanner />}
+        {activeTab === "analytics" && <AnalyticsDashboard key={refreshKey} />}
+        {activeTab === "resume"    && <ResumeRoadmap />}
+        {activeTab === "chat"      && <ChatWindow />}
+      </main>
     </div>
   );
 }
@@ -131,7 +141,7 @@ function Dashboard() {
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route path="/login"  element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route
         path="/"
