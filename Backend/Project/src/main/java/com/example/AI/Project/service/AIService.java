@@ -24,7 +24,6 @@ public class AIService {
                 Create a detailed roadmap for %s.
                 Give phases, tasks, projects and milestones.
                 """.formatted(goal.replace("%", "%%"));
-
         return callAI(prompt);
     }
 
@@ -35,26 +34,20 @@ public class AIService {
                 Return ONLY valid JSON.
 
                 Example:
-
                 {
                   "tasks": [
                     {"name":"Learn Java Basics"},
-                    {"name":"Learn OOP"},
-                    {"name":"Learn Collections"}
+                    {"name":"Learn OOP"}
                   ]
                 }
 
-                Do not return markdown.
-                Do not return explanation.
-                Do not use ```json.
+                Do not return markdown. Do not return explanation. Do not use ```json.
                 """.formatted(goal.replace("%", "%%"));
-
         return callAI(prompt);
     }
 
     public String prioritizeTasks(String goal, List<String> taskNames) {
         String taskList = String.join(", ", taskNames);
-
         String prompt = """
                 You are an expert project planner. Given a goal and a list of tasks, assign a priority, difficulty, and estimated hours to each task.
 
@@ -62,11 +55,9 @@ public class AIService {
                 Tasks: %s
 
                 Return ONLY valid JSON in this exact structure:
-
                 {
                   "tasks": [
-                    {"name":"Task name","priority":"HIGH","estimatedHours":2,"difficulty":"MEDIUM"},
-                    {"name":"Task name","priority":"LOW","estimatedHours":1,"difficulty":"EASY"}
+                    {"name":"Task name","priority":"HIGH","estimatedHours":2,"difficulty":"MEDIUM"}
                   ]
                 }
 
@@ -76,7 +67,6 @@ public class AIService {
 
                 Do not return markdown. Do not return explanation. Do not use ```json.
                 """.formatted(goal.replace("%", "%%"), taskList.replace("%", "%%"));
-
         return callAI(prompt);
     }
 
@@ -84,14 +74,10 @@ public class AIService {
                                     List<String> completedTasks,
                                     List<String> pendingTasks,
                                     int availableHours) {
-
         String completed = (completedTasks == null || completedTasks.isEmpty())
-                ? "None"
-                : String.join(", ", completedTasks);
-
+                ? "None" : String.join(", ", completedTasks);
         String pending = (pendingTasks == null || pendingTasks.isEmpty())
-                ? "None"
-                : String.join(", ", pendingTasks);
+                ? "None" : String.join(", ", pendingTasks);
 
         String prompt = """
                 You are a smart daily planner like Notion AI.
@@ -108,11 +94,9 @@ public class AIService {
 
                 9:00 AM - Task name
                 10:00 AM - Task name
-                11:00 AM - Task name
 
                 Keep it practical and motivating. No extra explanation.
                 """.formatted(goal, completed, pending, availableHours);
-
         return callAI(prompt);
     }
 
@@ -123,7 +107,7 @@ public class AIService {
             StringBuilder messagesJson = new StringBuilder();
             messagesJson.append("[");
             messagesJson.append("""
-                    {"role":"system","content":"You are an expert software engineering mentor. Help users learn programming, system design, and career growth. Give clear, practical, and encouraging advice. Format responses with short paragraphs. Use bullet points for steps or lists."}
+                    {"role":"system","content":"You are an expert software engineering mentor. Help users learn programming, system design, and career growth. Give clear, practical, and encouraging advice."}
                     """);
 
             for (ChatMessage msg : messages) {
@@ -133,14 +117,12 @@ public class AIService {
                         .replace("\n", "\\n")
                         .replace("\r", "\\r")
                         .replace("\t", "\\t");
-
                 messagesJson.append(",{\"role\":\"")
                         .append(msg.getRole())
                         .append("\",\"content\":\"")
                         .append(safeContent)
                         .append("\"}");
             }
-
             messagesJson.append("]");
 
             String body = """
@@ -157,22 +139,10 @@ public class AIService {
             headers.add("X-Title", "AI Goal Planner");
 
             HttpEntity<String> request = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    request,
-                    String.class
-            );
-
-            String json = response.getBody();
-            JsonNode root = objectMapper.readTree(json);
-
-            return root.path("choices")
-                    .get(0)
-                    .path("message")
-                    .path("content")
-                    .asText();
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.path("choices").get(0).path("message").path("content").asText();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -188,7 +158,6 @@ public class AIService {
                                           String predictedFinishDate,
                                           int probability,
                                           String deadlineDate) {
-
         String deadlineLine = deadlineDate != null
                 ? "Target deadline: " + deadlineDate
                 : "No fixed deadline set.";
@@ -213,13 +182,11 @@ public class AIService {
         );
 
         String result = callAI(prompt);
-
         if (result == null || result.isBlank()) {
             return probability >= 60
                     ? "You're on track — keep up the consistent pace to hit your goal."
                     : "Pace is a bit behind target — try blocking dedicated time daily to catch up.";
         }
-
         return result.trim().replace("\"", "");
     }
 
@@ -235,7 +202,6 @@ public class AIService {
 
                 Example format:
                 1. Topic or task name (Tip or resource here)
-                2. Topic or task name (Tip or resource here)
 
                 Be specific to the target role. No markdown headers. No extra explanation. Just the numbered list.
                 """.formatted(
@@ -243,8 +209,38 @@ public class AIService {
                 section.replace("%", "%%"),
                 description.replace("%", "%%")
         );
-
         return callAI(prompt);
+    }
+
+    /**
+     * RAG answer — responds strictly from the provided document context.
+     * Called by RagService after retrieving relevant chunks from MySQL.
+     */
+    public String answerWithContext(String question, String context) {
+        String safeQuestion = question.replace("\"", "\\\"").replace("\n", "\\n");
+        String safeContext  = context
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
+
+        String prompt = """
+                You are a helpful assistant that answers questions strictly based on the provided document context.
+                If the answer is not in the context, say "I don't have enough information in the uploaded documents to answer that."
+                Do not use any external knowledge. Be concise and accurate.
+
+                Context from uploaded documents:
+                %s
+
+                Question: %s
+                """.formatted(safeContext, safeQuestion);
+
+        String result = callAI(prompt);
+        if (result == null || result.isBlank()) {
+            return "I couldn't generate an answer at this time. Please try again.";
+        }
+        return result.trim();
     }
 
     private String callAI(String prompt) {
@@ -255,14 +251,8 @@ public class AIService {
                     {
                       "model":"openai/gpt-oss-20b:free",
                       "messages":[
-                        {
-                          "role":"system",
-                          "content":"You are an expert planner."
-                        },
-                        {
-                          "role":"user",
-                          "content":"%s"
-                        }
+                        {"role":"system","content":"You are an expert planner."},
+                        {"role":"user","content":"%s"}
                       ]
                     }
                     """.formatted(prompt.replace("\"", "\\\"").replace("\n", "\\n"));
@@ -274,22 +264,10 @@ public class AIService {
             headers.add("X-Title", "AI Goal Planner");
 
             HttpEntity<String> request = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    request,
-                    String.class
-            );
-
-            String json = response.getBody();
-            JsonNode root = objectMapper.readTree(json);
-
-            return root.path("choices")
-                    .get(0)
-                    .path("message")
-                    .path("content")
-                    .asText();
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.path("choices").get(0).path("message").path("content").asText();
 
         } catch (Exception e) {
             e.printStackTrace();

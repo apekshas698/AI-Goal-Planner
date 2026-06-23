@@ -13,14 +13,16 @@ import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import StreakBadge from "./components/StreakBadge";
 import ResumeRoadmap from "./components/ResumeRoadmap";
 import { useAuth } from "./context/AuthContext";
+import RagChat from "./components/RagChat";
 
 const TABS = [
-  { id: "goals",     label: "Goals",          icon: "📋" },
-  { id: "kanban",    label: "Kanban",          icon: "🗂"  },
-  { id: "planner",   label: "Daily Planner",   icon: "📅" },
-  { id: "analytics", label: "Analytics",       icon: "📊" },
-  { id: "resume",    label: "Resume Roadmap",  icon: "📄" },
-  { id: "chat",      label: "AI Mentor",       icon: "💬" },
+  { id: "goals",     label: "Goals",         icon: "📋" },
+  { id: "kanban",    label: "Kanban",         icon: "🗂"  },
+  { id: "planner",   label: "Daily Planner",  icon: "📅" },
+  { id: "analytics", label: "Analytics",      icon: "📊" },
+  { id: "resume",    label: "Resume Roadmap", icon: "📄" },
+  { id: "rag",       label: "Doc Q&A",        icon: "🧠" },
+  { id: "chat",      label: "AI Mentor",      icon: "💬" },
 ];
 
 function Dashboard() {
@@ -132,6 +134,7 @@ function Dashboard() {
         {activeTab === "planner"   && <DailyPlanner />}
         {activeTab === "analytics" && <AnalyticsDashboard key={refreshKey} />}
         {activeTab === "resume"    && <ResumeRoadmap />}
+        {activeTab === "rag"       && <RagChat key={refreshKey} />}
         {activeTab === "chat"      && <ChatWindow />}
       </main>
     </div>
