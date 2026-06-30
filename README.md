@@ -4,7 +4,7 @@ AI Goal Planner is a full-stack web application that helps users create goals, g
 
 ## Live Demo
 
-* **Frontend:** https://ai-goal-planner-six.vercel.app/login
+* **Frontend:** [https://ai-goal-planner-six.vercel.app/login](https://ai-goal-planner-six.vercel.app/)
 * **Backend:** https://ai-goal-planner.onrender.com/
 
 ## Features
