@@ -2,6 +2,11 @@
 
 AI Goal Planner is a full-stack web application that helps users create goals, generate AI-powered action plans, automatically track progress through task completion, visualize work on a Kanban board, predict deadlines, and chat with an AI mentor for guidance — all backed by live analytics.
 
+## Live Demo
+
+* **Frontend:** https://ai-goal-planner-six.vercel.app/login
+* **Backend:** https://ai-goal-planner.onrender.com/
+
 ## Features
 
 * User authentication with JWT (signup/login)
@@ -39,38 +44,6 @@ AI Goal Planner is a full-stack web application that helps users create goals, g
 
 ### AI Integration
 * OpenRouter API (model: `openai/gpt-oss-20b:free`)
-
-## Key Architecture Highlights
-
-### Event-Driven Progress Tracking
-
-When a user marks a task as complete or incomplete, or drags it across the Kanban board, the backend:
-
-1. `TaskController` updates the task's `completed` / `kanbanStatus` and publishes a `TaskCompletedEvent` via Spring's `ApplicationEventPublisher`.
-2. `GoalProgressListener` (annotated with `@EventListener`) picks up the event, recalculates the goal's progress percentage based on completed vs. total tasks, and updates the goal's `progress` and `status` (`NOT_STARTED` / `IN_PROGRESS` / `COMPLETED`).
-
-This decouples task updates from goal progress logic — no manual progress updates required, and new side effects (notifications, activity logs, etc.) can be added later without touching `TaskController`.
-
-### Two-Pass AI Task Generation
-
-When a goal is created, `AIService` first generates a roadmap, then generates a list of raw tasks, then makes a second AI call (`prioritizeTasks`) that takes the saved task names and returns a priority, difficulty, and estimated-hours rating for each — giving the Kanban board and prediction agent richer data to work with than a flat task list.
-
-### Deadline Prediction Agent
-
-`PredictionService` looks at a goal's actual task history — hours completed so far, days elapsed since creation, and remaining estimated hours — to compute a real pace (hours/day) and project a finish date. If the goal has a target deadline, it also computes a completion probability based on the buffer between the projected and target dates, and asks the AI for a short, specific progress insight.
-
-### Analytics Dashboard
-
-`AnalyticsService` aggregates a user's goals and tasks into chart-ready data: a 12-week rolling view of cumulative task completion, a 14-day productivity trend built from actual `completedAt` timestamps, overall task completion rate, goal success rate, and a priority breakdown — no hardcoded or mock numbers, everything is derived from stored data.
-
-### AI Mentor Chat (Multi-Turn Conversation)
-
-The chat feature sends the full conversation history with every request, giving the AI memory of the ongoing session. The backend exposes `POST /api/chat`, which accepts a list of messages and returns the assistant's reply. The system prompt instructs the AI to act as a software engineering mentor covering programming, system design, and career growth.
-
-### AI Daily Planner
-
-Given a saved goal, the planner fetches all its tasks, separates completed from pending ones, and passes them along with the user's available hours to the AI. It returns a focused hour-by-hour schedule starting from 9:00 AM using only pending tasks.
-
 ## Project Structure
 
 ```text
@@ -156,7 +129,7 @@ cd Backend/Project
 mvn spring-boot:run
 ```
 
-Backend URL:
+Backend URL (local):
 
 ```text
 http://localhost:9090
@@ -170,7 +143,7 @@ npm install
 npm run dev
 ```
 
-Frontend URL:
+Frontend URL (local):
 
 ```text
 http://localhost:5173
@@ -203,7 +176,6 @@ http://localhost:5173
 * AI-generated suggestions for stalled goals
 * Persistent chat history saved to database
 * Exportable analytics (PDF/CSV reports)
-* Deployment on AWS/Render/Vercel
 
 ## Author
 
